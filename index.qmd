@@ -1,0 +1,116 @@
+---
+title: "Índice de Prioridad Social 2024 - Región Metropolitana"
+format:
+  html:
+    embed-resources: true
+    theme: flatly
+    page-layout: full
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#Implementación Interactiva----
+
+
+library(sf)
+library(dplyr)
+library(leaflet)
+library(htmltools) # Para dar formato HTML a las etiquetas
+
+ruta_shp <- "C:/Users/Tamar/OneDrive/Escritorio/Mapa Georreferenciado IPS/Mapa-Georreferencial-IPS-RM-2024-/IPS 2024/IPS_RM_2024_con_IPS.shp"
+
+
+
+IPS_RM <- st_read(ruta_shp, quiet = TRUE)
+
+
+IPS_RM <- st_set_crs(IPS_RM, 4326) 
+IPS_RM <- IPS_RM %>% mutate(IPS_2024 = as.numeric(IPS_2024))
+
+colores <- c("#FFF8E1", "#F7D779", "#EAAA00", "#7FD2CB", "#00A499")
+pal <- colorNumeric(
+  palette = colores, 
+  domain = IPS_RM$IPS_2024, 
+  na.color = "grey90"
+)
+
+mapa_interactivo <- leaflet(data = IPS_RM, width = "100%", height = "85vh") %>%
+  # --- 1. Múltiples mapas base ---
+  addProviderTiles(providers$CartoDB.Positron, group = "Mapa Claro") %>% 
+  addProviderTiles(providers$Esri.WorldImagery, group = "Satélite") %>%
+  addProviderTiles(providers$OpenStreetMap, group = "Callejero") %>%
+  
+  # Los polígonos y las etiquetas (tu código actual)
+  # Los polígonos y las etiquetas (CÓDIGO ACTUALIZADO CON TRASLUCIDEZ)
+  addPolygons(
+    fillColor = ~pal(IPS_2024),
+    weight = 1,
+    opacity = 1,
+    color = "grey30",
+    
+    # --- AJUSTE 1: Opacidad inicial de los colores (traslúcido) ---
+    # Un valor de 0.5 significa 50% de transparencia. 
+    # Ajústalo entre 0.3 y 0.6 según tu gusto.
+    fillOpacity = 0.5, 
+    
+    highlightOptions = highlightOptions(
+      weight = 1,
+      color = "#222",
+      
+      # --- AJUSTE 2: Opacidad al pasar el mouse (Hover) ---
+      # Antes estaba en 1 (opaco). Al quitarlo o bajarlo, 
+      # mantenemos la translucidez para seguir viendo las calles.
+      # Lo dejaré en 0.7 para que destaque un poco, pero siga siendo see-through.
+      fillOpacity = 0.7, 
+      
+      bringToFront = TRUE
+    ),
+    label = ~lapply(paste0(
+      "<strong>Comuna:</strong> ", COMUNA, "<br>",
+      "<strong>IPS 2024:</strong> ", round(IPS_2024, 2)
+    ), HTML),
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "3px 8px"),
+      textsize = "13px",
+      direction = "auto"
+    )
+  ) %>%
+  
+  # La leyenda (tu código actual)
+  addLegend(
+    pal = pal, 
+    values = ~IPS_2024, 
+    opacity = 0.8, 
+    title = "IPS 2024", 
+    position = "bottomright"
+  ) %>%
+  
+  # --- ¡NUEVAS FUNCIONES INTERACTIVAS! ---
+  
+  # Control para que el usuario cambie de mapa base
+  addLayersControl(
+    baseGroups = c("Mapa Claro", "Satélite", "Callejero"),
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>%
+  
+  # Mini-mapa de referencia en la esquina inferior izquierda
+  addMiniMap(
+    tiles = providers$CartoDB.Positron,
+    toggleDisplay = TRUE,
+    position = "bottomleft",
+    minimized = FALSE
+  ) %>%
+  
+  # Barra de escala métrica
+  addScaleBar(
+    position = "bottomleft",
+    options = scaleBarOptions(imperial = FALSE) # Solo kilómetros/metros
+  )
+
+# Mostrar mapa
+mapa_interactivo
+
+```
